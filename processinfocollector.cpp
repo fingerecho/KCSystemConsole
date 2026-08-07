@@ -10,7 +10,10 @@
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "iphlpapi.lib")
 
-ProcessInfoCollector::ProcessInfoCollector() = default;
+ProcessInfoCollector::ProcessInfoCollector(QObject *parent)
+    : QObject(parent)
+{
+}
 
 ULARGE_INTEGER ProcessInfoCollector::fileTimeToULarge(const FILETIME &ft)
 {
@@ -20,45 +23,44 @@ ULARGE_INTEGER ProcessInfoCollector::fileTimeToULarge(const FILETIME &ft)
     return ul;
 }
 
-int ProcessInfoCollector::countNetworkConnections(DWORD pid)
+QHash<DWORD, int> ProcessInfoCollector::buildNetworkMap()
 {
-    int count = 0;
+    QHash<DWORD, int> map;
 
-    // ---- TCP ----
+    // ---- TCP: enumerate once ----
     DWORD tcpSize = 0;
     GetExtendedTcpTable(nullptr, &tcpSize, FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0);
     if (tcpSize > 0) {
         std::vector<BYTE> buf(tcpSize);
         auto *tcp = reinterpret_cast<MIB_TCPTABLE_OWNER_PID *>(buf.data());
         if (GetExtendedTcpTable(tcp, &tcpSize, FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0) == NO_ERROR) {
-            for (DWORD i = 0; i < tcp->dwNumEntries; ++i) {
-                if (tcp->table[i].dwOwningPid == pid)
-                    ++count;
-            }
+            for (DWORD i = 0; i < tcp->dwNumEntries; ++i)
+                map[tcp->table[i].dwOwningPid]++;
         }
     }
 
-    // ---- UDP ----
+    // ---- UDP: enumerate once ----
     DWORD udpSize = 0;
     GetExtendedUdpTable(nullptr, &udpSize, FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0);
     if (udpSize > 0) {
         std::vector<BYTE> buf(udpSize);
         auto *udp = reinterpret_cast<MIB_UDPTABLE_OWNER_PID *>(buf.data());
         if (GetExtendedUdpTable(udp, &udpSize, FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0) == NO_ERROR) {
-            for (DWORD i = 0; i < udp->dwNumEntries; ++i) {
-                if (udp->table[i].dwOwningPid == pid)
-                    ++count;
-            }
+            for (DWORD i = 0; i < udp->dwNumEntries; ++i)
+                map[udp->table[i].dwOwningPid]++;
         }
     }
 
-    return count;
+    return map;
 }
 
 QList<ProcessInfo> ProcessInfoCollector::collect()
 {
     QList<ProcessInfo> result;
     QMap<DWORD, ProcessSample> currentSamples;
+
+    // ---- Build PID→connection-count map ONCE ----
+    QHash<DWORD, int> netMap = buildNetworkMap();
 
     // ---- Current wall-clock time (100 ns units) ----
     FILETIME sysFt;
@@ -120,7 +122,7 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
                 PROCESS_MEMORY_COUNTERS_EX pmc{};
                 pmc.cb = sizeof(pmc);
                 if (GetProcessMemoryInfo(hProc,
-                        reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&pmc), sizeof(pmc))) {
+                                         reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&pmc), sizeof(pmc))) {
                     info.memoryKB = static_cast<qint64>(pmc.WorkingSetSize / 1024);
                 }
 
@@ -147,8 +149,8 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
                 CloseHandle(hProc);
             }
 
-            // ---- Network (doesn't need process handle) ----
-            info.networkConnections = countNetworkConnections(pid);
+            // ---- Network (O(1) lookup from pre-built map) ----
+            info.networkConnections = netMap.value(pid, 0);
 
             currentSamples[pid] = sample;
             result.append(info);
@@ -162,4 +164,9 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
     m_prevSamples = currentSamples;
 
     return result;
+}
+
+void ProcessInfoCollector::doCollect()
+{
+    emit collected(collect());
 }

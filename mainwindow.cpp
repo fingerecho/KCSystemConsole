@@ -18,7 +18,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    delete m_processCollector;
+    m_processTimer->stop();
+    m_processThread->quit();
+    m_processThread->wait();
     delete ui;
 }
 
@@ -129,16 +131,27 @@ void MainWindow::initProcessPage()
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_processTable);
 
-    // ---- Collector + Timer ----
-    m_processCollector = new ProcessInfoCollector();
+    // ---- Collector, Thread, Timer ----
+    m_processCollector = new ProcessInfoCollector();          // no parent – will be moved
+    m_processThread = new QThread(this);
+    m_processCollector->moveToThread(m_processThread);
+
+    connect(m_processThread, &QThread::finished,
+            m_processCollector, &QObject::deleteLater);
 
     m_processTimer = new QTimer(this);
     m_processTimer->setInterval(5000);
-    connect(m_processTimer, &QTimer::timeout, this, &MainWindow::refreshProcessTable);
-    m_processTimer->start();
 
-    // Initial populate
-    refreshProcessTable();
+    // Main-thread timer → worker-thread slot  (queued cross-thread)
+    connect(m_processTimer, &QTimer::timeout,
+            m_processCollector, &ProcessInfoCollector::doCollect);
+
+    // Worker-thread signal → main-thread slot  (queued cross-thread)
+    connect(m_processCollector, &ProcessInfoCollector::collected,
+            this, &MainWindow::onProcessCollected);
+
+    m_processThread->start();
+    m_processTimer->start();
 }
 
 static QString formatBytes(qint64 bytesPerSec)
@@ -159,11 +172,8 @@ static QString formatMemoryKB(qint64 kb)
     return QString::number(kb / (1024.0 * 1024.0), 'f', 2) + " GB";
 }
 
-void MainWindow::refreshProcessTable()
+void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
 {
-    QList<ProcessInfo> processes = m_processCollector->collect();
-
-    // Remember scroll position
     int scrollPos = m_processTable->verticalScrollBar()->value();
 
     m_processTable->setRowCount(processes.size());

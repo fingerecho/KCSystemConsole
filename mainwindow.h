@@ -6,6 +6,7 @@
 #include <QButtonGroup>
 #include <QTableWidget>
 #include <QTimer>
+#include <QThread>
 #include "processinfocollector.h"
 
 QT_BEGIN_NAMESPACE
@@ -24,7 +25,7 @@ public:
 
 private slots:
     void on_collapseToolButton_pressed();
-    void refreshProcessTable();
+    void onProcessCollected(QList<ProcessInfo> processes);
 
 private:
     void applyMenuAlignment(bool expanded);
@@ -35,6 +36,7 @@ private:
     QButtonGroup *m_leftMenuButtonGroup;
     QTableWidget *m_processTable;
     QTimer *m_processTimer;
+    QThread *m_processThread;
     ProcessInfoCollector *m_processCollector;
 
     int m_expandedWidth;

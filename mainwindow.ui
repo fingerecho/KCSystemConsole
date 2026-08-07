@@ -223,7 +223,7 @@ QWidget#leftMenuWidget[expanded=&quot;true&quot;] QToolButton#settingToolButton 
       <widget class="QWidget" name="processPage">
        <property name="styleSheet">
         <string notr="true">
-background-color:rgb(77, 64, 255);</string>
+background-color:rgb(255, 255, 255);</string>
        </property>
       </widget>
       <widget class="QWidget" name="settingPage">

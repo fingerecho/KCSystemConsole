@@ -1,9 +1,11 @@
 #ifndef PROCESSINFOCOLLECTOR_H
 #define PROCESSINFOCOLLECTOR_H
 
+#include <QObject>
 #include <QString>
 #include <QList>
 #include <QMap>
+#include <QHash>
 #include <windows.h>
 
 struct ProcessInfo
@@ -17,13 +19,24 @@ struct ProcessInfo
     int networkConnections;   // TCP + UDP connections
 };
 
-class ProcessInfoCollector
+class ProcessInfoCollector : public QObject
 {
-public:
-    ProcessInfoCollector();
-    QList<ProcessInfo> collect();
+    Q_OBJECT
 
+public:
+    explicit ProcessInfoCollector(QObject *parent = nullptr);
+
+public slots:
+    void doCollect();
+
+signals:
+    void collected(QList<ProcessInfo> processes);
 private:
+    int countNetworkConnections(DWORD pid);
+private:
+    QList<ProcessInfo> collect();
+    QHash<DWORD, int> buildNetworkMap();
+
     struct ProcessSample
     {
         ULARGE_INTEGER kernelTime;
@@ -36,7 +49,6 @@ private:
 
     QMap<DWORD, ProcessSample> m_prevSamples;
 
-    int countNetworkConnections(DWORD pid);
     static ULARGE_INTEGER fileTimeToULarge(const FILETIME &ft);
 };
 
