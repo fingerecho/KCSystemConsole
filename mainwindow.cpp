@@ -175,44 +175,51 @@ static QString formatMemoryKB(qint64 kb)
 void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
 {
     int scrollPos = m_processTable->verticalScrollBar()->value();
+    int newCount = processes.size();
+    int oldCount = m_processTable->rowCount();
 
-    m_processTable->setRowCount(processes.size());
+    m_processTable->setUpdatesEnabled(false);
 
-    for (int row = 0; row < processes.size(); ++row) {
+    // Expand rows if needed (setRowCount upward only adds empty rows, no items created)
+    if (newCount > oldCount)
+        m_processTable->setRowCount(newCount);
+
+    for (int row = 0; row < newCount; ++row) {
         const auto &p = processes[row];
 
-        // 名称
-        auto *nameItem = new QTableWidgetItem(p.name);
-        m_processTable->setItem(row, 0, nameItem);
+        // Helper: reuse existing item or create one with right-alignment
+        auto ensureItem = [&](int col) -> QTableWidgetItem * {
+            auto *it = m_processTable->item(row, col);
+            if (!it) {
+                it = new QTableWidgetItem();
+                it->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                m_processTable->setItem(row, col, it);
+            }
+            return it;
+        };
 
-        // PID
-        auto *pidItem = new QTableWidgetItem(QString::number(p.pid));
-        pidItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_processTable->setItem(row, 1, pidItem);
+        // col 0: Name (default left-aligned)
+        auto *nameItem = m_processTable->item(row, 0);
+        if (!nameItem) {
+            nameItem = new QTableWidgetItem();
+            m_processTable->setItem(row, 0, nameItem);
+        }
+        nameItem->setText(p.name);
 
-        // CPU
-        auto *cpuItem = new QTableWidgetItem(QString::number(p.cpuPercent, 'f', 1) + "%");
-        cpuItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_processTable->setItem(row, 2, cpuItem);
-
-        // 内存
-        auto *memItem = new QTableWidgetItem(formatMemoryKB(p.memoryKB));
-        memItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_processTable->setItem(row, 3, memItem);
-
-        // 磁盘
-        QString diskStr = QString("R:%1  W:%2")
-            .arg(formatBytes(p.diskReadRate))
-            .arg(formatBytes(p.diskWriteRate));
-        auto *diskItem = new QTableWidgetItem(diskStr);
-        diskItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_processTable->setItem(row, 4, diskItem);
-
-        // 网络
-        auto *netItem = new QTableWidgetItem(QString::number(p.networkConnections));
-        netItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_processTable->setItem(row, 5, netItem);
+        // col 1-5: Data columns
+        ensureItem(1)->setText(QString::number(p.pid));
+        ensureItem(2)->setText(QString::number(p.cpuPercent, 'f', 1) + "%");
+        ensureItem(3)->setText(formatMemoryKB(p.memoryKB));
+        ensureItem(4)->setText(QString("R:%1  W:%2")
+                                   .arg(formatBytes(p.diskReadRate))
+                                   .arg(formatBytes(p.diskWriteRate)));
+        ensureItem(5)->setText(QString::number(p.networkConnections));
     }
 
+    // Shrink if needed
+    if (newCount < oldCount)
+        m_processTable->setRowCount(newCount);
+
+    m_processTable->setUpdatesEnabled(true);
     m_processTable->verticalScrollBar()->setValue(scrollPos);
 }
