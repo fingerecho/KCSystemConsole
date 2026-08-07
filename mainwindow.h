@@ -1,0 +1,48 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QStyle>
+#include <QButtonGroup>
+#include <QTableWidget>
+#include <QTimer>
+#include "processinfocollector.h"
+
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
+
+private slots:
+    void on_collapseToolButton_pressed();
+    void refreshProcessTable();
+
+private:
+    void applyMenuAlignment(bool expanded);
+    void initLeftMenuBtnGrp();
+    void initProcessPage();
+
+private:
+    QButtonGroup *m_leftMenuButtonGroup;
+    QTableWidget *m_processTable;
+    QTimer *m_processTimer;
+    ProcessInfoCollector *m_processCollector;
+
+    int m_expandedWidth;
+    int m_collapsedWidth;
+    bool m_menuExpanded = false;
+
+    Ui::MainWindow *ui;
+};
+
+#endif // MAINWINDOW_H
+
