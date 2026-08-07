@@ -114,18 +114,22 @@ void MainWindow::initProcessPage()
     m_processTable->setHorizontalHeaderLabels({"名称", "PID", "CPU", "内存", "磁盘", "网络"});
 
     m_processTable->horizontalHeader()->setStretchLastSection(true);
-    m_processTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-    m_processTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    m_processTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    m_processTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_processTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    m_processTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+    m_processTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
+    m_processTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    m_processTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    m_processTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Interactive);
+    m_processTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Interactive);
+    m_processTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Interactive);
 
     m_processTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_processTable->verticalHeader()->setVisible(false);
+    m_processTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_processTable->setAlternatingRowColors(true);
 
+    QTimer::singleShot(0, this, [this]() {
+        setColumnProportions({6, 1, 1, 1, 2, 1});
+    });
     // ---- Layout ----
     auto *layout = new QVBoxLayout(ui->processPage);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -151,7 +155,27 @@ void MainWindow::initProcessPage()
             this, &MainWindow::onProcessCollected);
 
     m_processThread->start();
+
+    // Trigger immediate first collect (queued to worker thread)
+    QMetaObject::invokeMethod(m_processCollector, "doCollect", Qt::QueuedConnection);
+
     m_processTimer->start();
+}
+
+void MainWindow::setColumnProportions(const QVector<int>& proportions) {
+    if (!m_processTable) return;
+
+    // 获取表格可视区域的宽度（减去边框和边距）
+    int availableWidth = m_processTable->viewport()->width() - 5;
+
+    // 计算总比例
+    int total = std::accumulate(proportions.begin(), proportions.end(), 0);
+
+    // 按比例设置列宽
+    for (size_t i = 0; i < proportions.size() && i < 6; ++i) {
+        int width = availableWidth * proportions[i] / total;
+        m_processTable->setColumnWidth(i, width);
+    }
 }
 
 static QString formatBytes(qint64 bytesPerSec)

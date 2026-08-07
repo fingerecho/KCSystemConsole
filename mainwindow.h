@@ -7,6 +7,7 @@
 #include <QTableWidget>
 #include <QTimer>
 #include <QThread>
+#include <QVector>
 #include "processinfocollector.h"
 
 QT_BEGIN_NAMESPACE
@@ -31,6 +32,7 @@ private:
     void applyMenuAlignment(bool expanded);
     void initLeftMenuBtnGrp();
     void initProcessPage();
+    void setColumnProportions(const QVector<int>& proportions);
 
 private:
     QButtonGroup *m_leftMenuButtonGroup;
