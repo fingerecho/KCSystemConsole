@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "NumericTableItem.h"
 
 #include <QVBoxLayout>
 #include <QHeaderView>
@@ -136,6 +137,8 @@ void MainWindow::initProcessPage()
         "QTableWidget::item:selected { background-color: #f6f6f6; color: inherit; }"
         "QTableWidget::item:hover { background-color: #f6f6f6; }");
 
+    m_processTable->setSortingEnabled(true);
+
     QTimer::singleShot(0, this, [this]() {
         setColumnProportions({6, 1, 1, 1, 2, 1});
     });
@@ -220,18 +223,20 @@ void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
     for (int row = 0; row < newCount; ++row) {
         const auto &p = processes[row];
 
-        // Helper: reuse existing item or create one with right-alignment
-        auto ensureItem = [&](int col) -> QTableWidgetItem * {
-            auto *it = m_processTable->item(row, col);
+        // Helper: get or create a NumericTableItem for numeric columns
+        auto ensureNumeric = [&](int col, double sortKey) -> NumericTableItem * {
+            auto *it = dynamic_cast<NumericTableItem *>(m_processTable->item(row, col));
             if (!it) {
-                it = new QTableWidgetItem();
+                it = new NumericTableItem(sortKey);
                 it->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
                 m_processTable->setItem(row, col, it);
+            } else {
+                it->setSortKey(sortKey);
             }
             return it;
         };
 
-        // col 0: Name (default left-aligned)
+        // col 0: Name (default left-aligned, plain QTableWidgetItem)
         auto *nameItem = m_processTable->item(row, 0);
         if (!nameItem) {
             nameItem = new QTableWidgetItem();
@@ -239,14 +244,19 @@ void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
         }
         nameItem->setText(p.name);
 
-        // col 1-5: Data columns
-        ensureItem(1)->setText(QString::number(p.pid));
-        ensureItem(2)->setText(QString::number(p.cpuPercent, 'f', 1) + "%");
-        ensureItem(3)->setText(formatMemoryKB(p.memoryKB));
-        ensureItem(4)->setText(QString("R:%1  W:%2")
-                                   .arg(formatBytes(p.diskReadRate))
-                                   .arg(formatBytes(p.diskWriteRate)));
-        ensureItem(5)->setText(QString::number(p.networkConnections));
+        // col 1-5: numeric columns with sort keys
+        ensureNumeric(1, static_cast<double>(p.pid))
+            ->setText(QString::number(p.pid));
+        ensureNumeric(2, p.cpuPercent)
+            ->setText(QString::number(p.cpuPercent, 'f', 1) + "%");
+        ensureNumeric(3, static_cast<double>(p.memoryKB))
+            ->setText(formatMemoryKB(p.memoryKB));
+        ensureNumeric(4, static_cast<double>(p.diskReadRate + p.diskWriteRate))
+            ->setText(QString("R:%1  W:%2")
+                          .arg(formatBytes(p.diskReadRate))
+                          .arg(formatBytes(p.diskWriteRate)));
+        ensureNumeric(5, static_cast<double>(p.networkConnections))
+            ->setText(QString::number(p.networkConnections));
     }
 
     // Shrink if needed

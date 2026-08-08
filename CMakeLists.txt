@@ -19,6 +19,7 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        NumericTableItem.h
         processinfocollector.cpp
         processinfocollector.h
         TwoRowHeaderView.cpp
