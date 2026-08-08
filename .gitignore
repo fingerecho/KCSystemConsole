@@ -1,0 +1,23 @@
+# 编译生成物
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.app
+
+# Qt 生成的中间文件
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.autosave
+
+# Qt Creator 项目配置文件（请确保 CMakeLists.txt 不在其列！）
+*.creator.user*
+CMakeLists.txt.user*
+
+# 构建输出目录（示例）
+build-*/
+build/
+Debug/
+Release/
