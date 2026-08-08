@@ -48,6 +48,7 @@ private:
     };
 
     QMap<DWORD, ProcessSample> m_prevSamples;
+    int m_logicalProcessorCount = 1;
 
     static ULARGE_INTEGER fileTimeToULarge(const FILETIME &ft);
 };

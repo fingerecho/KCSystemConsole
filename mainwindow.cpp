@@ -117,7 +117,7 @@ void MainWindow::initProcessPage()
     // Replace default header with two-row header
     m_processHeader = new TwoRowHeaderView(Qt::Horizontal, m_processTable);
     m_processTable->setHorizontalHeader(m_processHeader);
-    m_processTable->setHorizontalHeaderLabels({"进程名称", "PID", "CPU", "内存", "硬盘", "网络"});
+    m_processTable->setHorizontalHeaderLabels({"进程名称", "PID", "CPU", "内存", "硬盘", "连接数"});
 
     m_processHeader->setStretchLastSection(true);
     m_processHeader->setSectionResizeMode(0, QHeaderView::Interactive);
