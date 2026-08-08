@@ -5,6 +5,7 @@
 #include <QHeaderView>
 #include <QScrollBar>
 #include <QLocale>
+#include <windows.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -111,15 +112,19 @@ void MainWindow::initProcessPage()
 {
     // ---- Table ----
     m_processTable = new QTableWidget(0, 6, ui->processPage);
-    m_processTable->setHorizontalHeaderLabels({"名称", "PID", "CPU", "内存", "磁盘", "网络"});
 
-    m_processTable->horizontalHeader()->setStretchLastSection(true);
-    m_processTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Interactive);
-    m_processTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
-    m_processTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
-    m_processTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Interactive);
-    m_processTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Interactive);
-    m_processTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Interactive);
+    // Replace default header with two-row header
+    m_processHeader = new TwoRowHeaderView(Qt::Horizontal, m_processTable);
+    m_processTable->setHorizontalHeader(m_processHeader);
+    m_processTable->setHorizontalHeaderLabels({"进程名称", "PID", "CPU", "内存", "硬盘", "网络"});
+
+    m_processHeader->setStretchLastSection(true);
+    m_processHeader->setSectionResizeMode(0, QHeaderView::Interactive);
+    m_processHeader->setSectionResizeMode(1, QHeaderView::Interactive);
+    m_processHeader->setSectionResizeMode(2, QHeaderView::Interactive);
+    m_processHeader->setSectionResizeMode(3, QHeaderView::Interactive);
+    m_processHeader->setSectionResizeMode(4, QHeaderView::Interactive);
+    m_processHeader->setSectionResizeMode(5, QHeaderView::Interactive);
 
     m_processTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -246,4 +251,54 @@ void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
 
     m_processTable->setUpdatesEnabled(true);
     m_processTable->verticalScrollBar()->setValue(scrollPos);
+
+    updateHeaderSummary(processes);
+}
+
+void MainWindow::updateHeaderSummary(const QList<ProcessInfo> &processes)
+{
+    const int count = processes.size();
+    double totalCpu = 0.0;
+    qint64 totalMemKB = 0;
+    qint64 totalDiskRate = 0;   // read + write bytes/sec
+    int totalConnections = 0;
+
+    for (const auto &p : processes) {
+        totalCpu += p.cpuPercent;
+        totalMemKB += p.memoryKB;
+        totalDiskRate += p.diskReadRate + p.diskWriteRate;
+        totalConnections += p.networkConnections;
+    }
+
+    // Memory percentage: total process working set / system total RAM
+    const qint64 systemTotalKB = getTotalSystemMemoryKB();
+    const double memPercent = (systemTotalKB > 0)
+        ? (static_cast<double>(totalMemKB) / systemTotalKB) * 100.0
+        : 0.0;
+
+    // Disk percentage: relative to 100 MB/s baseline
+    constexpr double kDiskBaseline = 100.0 * 1024.0 * 1024.0; // 100 MB/s
+    const double diskPercent = (totalDiskRate / kDiskBaseline) * 100.0;
+
+    // Network percentage: relative to 1000 connections baseline
+    constexpr double kNetBaseline = 1000.0;
+    const double netPercent = (totalConnections / kNetBaseline) * 100.0;
+
+    m_processHeader->setTopLabels({
+        QString::number(count),                        // col 0: process count
+        QString(),                                      // col 1: PID – empty
+        QString::number(totalCpu, 'f', 1) + "%",       // col 2: total CPU%
+        QString::number(memPercent, 'f', 1) + "%",     // col 3: total memory%
+        QString::number(diskPercent, 'f', 1) + "%",    // col 4: total disk%
+        QString::number(netPercent, 'f', 1) + "%"      // col 5: total network%
+    });
+}
+
+qint64 MainWindow::getTotalSystemMemoryKB()
+{
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(memStatus);
+    if (GlobalMemoryStatusEx(&memStatus))
+        return static_cast<qint64>(memStatus.ullTotalPhys / 1024);
+    return 0;
 }

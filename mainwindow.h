@@ -9,6 +9,7 @@
 #include <QThread>
 #include <QVector>
 #include "processinfocollector.h"
+#include "TwoRowHeaderView.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -33,10 +34,13 @@ private:
     void initLeftMenuBtnGrp();
     void initProcessPage();
     void setColumnProportions(const QVector<int>& proportions);
+    void updateHeaderSummary(const QList<ProcessInfo> &processes);
+    static qint64 getTotalSystemMemoryKB();
 
 private:
     QButtonGroup *m_leftMenuButtonGroup;
     QTableWidget *m_processTable;
+    TwoRowHeaderView *m_processHeader;
     QTimer *m_processTimer;
     QThread *m_processThread;
     ProcessInfoCollector *m_processCollector;

@@ -19,8 +19,10 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
-	processinfocollector.cpp
-	processinfocollector.h
+        processinfocollector.cpp
+        processinfocollector.h
+        TwoRowHeaderView.cpp
+        TwoRowHeaderView.h
         ${TS_FILES}
 )
 
