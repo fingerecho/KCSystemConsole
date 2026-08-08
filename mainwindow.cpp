@@ -131,6 +131,10 @@ void MainWindow::initProcessPage()
     m_processTable->verticalHeader()->setVisible(false);
     m_processTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_processTable->setAlternatingRowColors(true);
+    m_processTable->setStyleSheet(
+        "QTableWidget { alternate-background-color: #fbfbfb; }"
+        "QTableWidget::item:selected { background-color: #f6f6f6; color: inherit; }"
+        "QTableWidget::item:hover { background-color: #f6f6f6; }");
 
     QTimer::singleShot(0, this, [this]() {
         setColumnProportions({6, 1, 1, 1, 2, 1});

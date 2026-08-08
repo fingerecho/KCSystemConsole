@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QStyleOptionHeader>
+#include <QStyle>
 
 TwoRowHeaderView::TwoRowHeaderView(Qt::Orientation orientation, QWidget *parent)
     : QHeaderView(orientation, parent)
@@ -19,7 +20,7 @@ void TwoRowHeaderView::setTopLabels(const QStringList &labels)
 QSize TwoRowHeaderView::sizeHint() const
 {
     QSize base = QHeaderView::sizeHint();
-    base.setHeight(m_rowHeight * 2 + 1); // two rows + 1px separator
+    base.setHeight(m_rowHeight * 2);
     return base;
 }
 
@@ -30,44 +31,42 @@ void TwoRowHeaderView::paintSection(QPainter *painter, const QRect &rect, int lo
 
     painter->save();
 
-    // Build a base style option from this widget
+    // Draw the entire section as ONE header cell (borders drawn only once)
     QStyleOptionHeader opt;
     opt.initFrom(this);
     opt.section = logicalIndex;
     opt.orientation = orientation();
+    opt.rect = rect;
+    opt.text = QString(); // no built-in text – we overlay our own
+    style()->drawControl(QStyle::CE_Header, &opt, painter, this);
 
+    // Overlay two rows of text
     const QRect topRect(rect.x(), rect.y(), rect.width(), m_rowHeight);
-    const QRect sepRect(rect.x(), rect.y() + m_rowHeight, rect.width(), 1);
-    const QRect bottomRect(rect.x(), rect.y() + m_rowHeight + 1,
-                           rect.width(), rect.height() - m_rowHeight - 1);
+    const QRect bottomRect(rect.x(), rect.y() + m_rowHeight,
+                           rect.width(), rect.height() - m_rowHeight);
 
-    // ---- Top row: summary values ----
-    opt.rect = topRect;
-    opt.text = (logicalIndex < m_topLabels.size()) ? m_topLabels.at(logicalIndex) : QString();
-    opt.textAlignment = Qt::AlignCenter;
+    const QColor textColor = palette().color(QPalette::ButtonText);
 
-    // Slightly lighter background to distinguish from bottom row
-    const QColor baseColor = opt.palette.color(QPalette::Button);
-    opt.palette.setColor(QPalette::Button, baseColor.lighter(110));
-
-    // Smaller font for summary values
+    // ---- Top row: summary values (smaller font) ----
     QFont smallFont = painter->font();
-    smallFont.setPointSize(smallFont.pointSize() - 1);
+    smallFont.setPointSize(qMax(smallFont.pointSize() - 1, 7));
     painter->setFont(smallFont);
+    painter->setPen(textColor);
+    {
+        const QString s = (logicalIndex < m_topLabels.size())
+                              ? m_topLabels.at(logicalIndex) : QString();
+        painter->drawText(topRect, Qt::AlignCenter, s);
+    }
 
-    style()->drawControl(QStyle::CE_Header, &opt, painter, this);
-
-    // ---- Separator line ----
-    painter->fillRect(sepRect, opt.palette.color(QPalette::Mid));
-
-    // ---- Bottom row: column labels (from model) ----
-    painter->setFont(font()); // restore normal font
-    opt.rect = bottomRect;
-    opt.text = model() ? model()->headerData(logicalIndex, orientation()).toString() : QString();
-    opt.textAlignment = Qt::AlignCenter;
-    opt.palette.setColor(QPalette::Button, baseColor);
-
-    style()->drawControl(QStyle::CE_Header, &opt, painter, this);
+    // ---- Bottom row: column labels (normal font) ----
+    painter->setFont(font());
+    painter->setPen(textColor);
+    {
+        const QString s = model()
+                              ? model()->headerData(logicalIndex, orientation()).toString()
+                              : QString();
+        painter->drawText(bottomRect, Qt::AlignCenter, s);
+    }
 
     painter->restore();
 }
