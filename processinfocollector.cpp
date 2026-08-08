@@ -17,6 +17,50 @@
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "iphlpapi.lib")
 
+// ============================================================
+// QueryWorkingSet – iterates every page in the process working
+// set and counts pages where Shared==0 (truly private pages
+// backed by commit, not file-backed like DLLs).
+// Returns private working set in KB.  0 on failure.
+// Requires PROCESS_VM_READ.
+// ============================================================
+static qint64 getPrivateWorkingSetKB(HANDLE hProc)
+{
+    static DWORD s_pageSize = 0;
+    if (s_pageSize == 0) {
+        SYSTEM_INFO si;
+        GetSystemInfo(&si);
+        s_pageSize = si.dwPageSize;
+    }
+
+    // Start with room for 8192 pages (~32 MB working set)
+    DWORD bufSize = sizeof(PSAPI_WORKING_SET_INFORMATION)
+                    + 8192 * sizeof(PSAPI_WORKING_SET_BLOCK);
+    std::vector<BYTE> buf(bufSize);
+
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        auto *wsi = reinterpret_cast<PSAPI_WORKING_SET_INFORMATION *>(buf.data());
+
+        if (QueryWorkingSet(hProc, buf.data(), bufSize)) {
+            SIZE_T privatePages = 0;
+            for (ULONG_PTR i = 0; i < wsi->NumberOfEntries; ++i) {
+                if (!wsi->WorkingSetInfo[i].Shared)
+                    ++privatePages;
+            }
+            return static_cast<qint64>((privatePages * s_pageSize) / 1024);
+        }
+
+        if (GetLastError() != ERROR_BAD_LENGTH)
+            return 0;   // genuine failure (access denied, etc.)
+
+        // Buffer too small – retry with the count the kernel told us
+        bufSize = static_cast<DWORD>(sizeof(PSAPI_WORKING_SET_INFORMATION)
+                    + wsi->NumberOfEntries * sizeof(PSAPI_WORKING_SET_BLOCK));
+        buf.resize(bufSize);
+    }
+    return 0;
+}
+
 ProcessInfoCollector::ProcessInfoCollector(QObject *parent)
     : QObject(parent)
 {
@@ -132,9 +176,13 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
             ProcessSample sample{};
             sample.hasDiskData = false;
 
-            HANDLE hProc = OpenProcess(
-                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                FALSE, pid);
+            // Try VM_READ first (needed for QueryWorkingSet).  If denied,
+            // fall back to QUERY_INFORMATION only (CPU + disk still work).
+            HANDLE hProcVm = OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+            HANDLE hProc = hProcVm;
+            if (!hProc)
+                hProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
 
             if (hProc) {
                 // ---- CPU times ----
@@ -160,11 +208,19 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
                 }
 
                 // ---- Memory ----
-                PROCESS_MEMORY_COUNTERS_EX pmc{};
-                pmc.cb = sizeof(pmc);
-                if (GetProcessMemoryInfo(hProc,
-                                         reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&pmc), sizeof(pmc))) {
-                    info.memoryKB = static_cast<qint64>(pmc.PrivateUsage / 1024);
+                if (hProcVm) {
+                    // Preferred: private working set via QueryWorkingSet
+                    qint64 ws = getPrivateWorkingSetKB(hProcVm);
+                    if (ws > 0)
+                        info.memoryKB = ws;
+                }
+                if (info.memoryKB == 0) {
+                    // Fallback: total working set (e.g. protected processes)
+                    PROCESS_MEMORY_COUNTERS_EX pmc{};
+                    pmc.cb = sizeof(pmc);
+                    if (GetProcessMemoryInfo(hProc,
+                            reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&pmc), sizeof(pmc)))
+                        info.memoryKB = static_cast<qint64>(pmc.WorkingSetSize / 1024);
                 }
 
                 // ---- Disk I/O ----
@@ -188,6 +244,8 @@ QList<ProcessInfo> ProcessInfoCollector::collect()
                 }
 
                 CloseHandle(hProc);
+                if (hProcVm && hProcVm != hProc)
+                    CloseHandle(hProcVm);
             }
 
             // ---- Network (O(1) lookup from pre-built map) ----

@@ -140,7 +140,7 @@ void MainWindow::initProcessPage()
     m_processTable->setSortingEnabled(true);
 
     QTimer::singleShot(0, this, [this]() {
-        setColumnProportions({6, 1, 1, 1, 2, 1});
+        setColumnProportions({55, 10, 10, 14, 25, 10});
     });
     // ---- Layout ----
     auto *layout = new QVBoxLayout(ui->processPage);
@@ -178,7 +178,7 @@ void MainWindow::setColumnProportions(const QVector<int>& proportions) {
     if (!m_processTable) return;
 
     // 获取表格可视区域的宽度（减去边框和边距）
-    int availableWidth = m_processTable->viewport()->width() - 5;
+    int availableWidth = m_processTable->viewport()->width() - 10;
 
     // 计算总比例
     int total = std::accumulate(proportions.begin(), proportions.end(), 0);
@@ -302,11 +302,18 @@ void MainWindow::updateHeaderSummary(const QList<ProcessInfo> &processes)
         totalConnections += p.networkConnections;
     }
 
-    // Memory percentage: total process working set / system total RAM
-    const qint64 systemTotalKB = getTotalSystemMemoryKB();
-    const double memPercent = (systemTotalKB > 0)
-        ? (static_cast<double>(totalMemKB) / systemTotalKB) * 100.0
-        : 0.0;
+    // Memory percentage: use system-wide "in use" (matches Task Manager)
+    double memPercent = 0.0;
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(memStatus);
+    if (GlobalMemoryStatusEx(&memStatus)) {
+        qint64 usedKB = static_cast<qint64>((memStatus.ullTotalPhys - memStatus.ullAvailPhys) / 1024);
+        memPercent = (memStatus.ullTotalPhys > 0)
+            ? (static_cast<double>(usedKB) / (memStatus.ullTotalPhys / 1024)) * 100.0
+            : 0.0;
+        // Also update per-process memory sum so formatMemoryKB can display it correctly
+        totalMemKB = usedKB;
+    }
 
     // Disk percentage: relative to 100 MB/s baseline
     constexpr double kDiskBaseline = 100.0 * 1024.0 * 1024.0; // 100 MB/s
