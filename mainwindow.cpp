@@ -210,6 +210,15 @@ static QString formatMemoryKB(qint64 kb)
 
 void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
 {
+    // Save current sort state before disabling (setSortingEnabled clears it)
+    const bool wasSorting = m_processTable->isSortingEnabled();
+    const int sortCol = m_processHeader->sortIndicatorSection();
+    const Qt::SortOrder sortOrder = m_processHeader->sortIndicatorOrder();
+    const bool hadSortIndicator = m_processHeader->isSortIndicatorShown();
+
+    // Disable sorting during data population to avoid blank rows
+    m_processTable->setSortingEnabled(false);
+
     int scrollPos = m_processTable->verticalScrollBar()->value();
     int newCount = processes.size();
     int oldCount = m_processTable->rowCount();
@@ -264,6 +273,15 @@ void MainWindow::onProcessCollected(QList<ProcessInfo> processes)
         m_processTable->setRowCount(newCount);
 
     m_processTable->setUpdatesEnabled(true);
+
+    // Re-enable sorting and restore previous sort state
+    if (wasSorting) {
+        m_processTable->setSortingEnabled(true);
+        if (hadSortIndicator && sortCol >= 0 && sortCol < m_processTable->columnCount()) {
+            m_processTable->sortItems(sortCol, sortOrder);
+        }
+    }
+
     m_processTable->verticalScrollBar()->setValue(scrollPos);
 
     updateHeaderSummary(processes);
