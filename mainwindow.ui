@@ -29,7 +29,7 @@ background-color: qlineargradient(
     );
 }</string>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout" stretch="40,1,599">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="49,1,550">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -37,7 +37,7 @@ background-color: qlineargradient(
      <number>0</number>
     </property>
     <property name="topMargin">
-     <number>50</number>
+     <number>0</number>
     </property>
     <property name="rightMargin">
      <number>0</number>
@@ -46,9 +46,131 @@ background-color: qlineargradient(
      <number>0</number>
     </property>
     <item>
-     <widget class="QWidget" name="leftMenuWidget" native="true">
-      <property name="styleSheet">
-       <string notr="true">/* 基础状态 */
+     <widget class="QWidget" name="topBannerWidget" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QStackedWidget" name="topBannerStackedWidget">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="processSearchBar">
+          <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="4,5,4">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <spacer name="processSearchBarLeftSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="processSearchBarLineEdit">
+             <property name="focusPolicy">
+              <enum>Qt::FocusPolicy::ClickFocus</enum>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">padding-left:16px;
+color:#959393;
+background-image: url(:/images/processPage/searchSign.png);
+background-repeat: no-repeat;
+background-position: left center;</string>
+             </property>
+             <property name="placeholderText">
+              <string>键入要搜索的名称或PID</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="processSearchBarRightSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="blankBar"/>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <spacer name="centralwidgetVerticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Orientation::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QWidget" name="bottomContentWidget" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="50,1,749">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QWidget" name="leftMenuWidget" native="true">
+         <property name="styleSheet">
+          <string notr="true">/* 基础状态 */
 QToolButton#processToolButton,
 QToolButton#settingToolButton,
 QToolButton#collapseToolButton {
@@ -89,166 +211,169 @@ QWidget#leftMenuWidget[expanded=&quot;true&quot;] QToolButton#processToolButton,
 QWidget#leftMenuWidget[expanded=&quot;true&quot;] QToolButton#settingToolButton {
     
 }</string>
-      </property>
-      <layout class="QVBoxLayout" name="leftMenuWidgetVerticalLayout" stretch="0,0,545,0">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>5</number>
-       </property>
-       <item alignment="Qt::AlignmentFlag::AlignHCenter">
-        <widget class="QToolButton" name="collapseToolButton">
-         <property name="text">
-          <string/>
          </property>
-         <property name="icon">
-          <iconset resource="imageResources.qrc">
-           <normaloff>:/images/mainwindowPage/menu-01.png</normaloff>:/images/mainwindowPage/menu-01.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item alignment="Qt::AlignmentFlag::AlignHCenter">
-        <widget class="QToolButton" name="processToolButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="imageResources.qrc">
-           <normaloff>:/images/mainwindowPage/process-01.png</normaloff>:/images/mainwindowPage/process-01.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
+         <layout class="QVBoxLayout" name="leftMenuWidgetVerticalLayout" stretch="0,0,545,0">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
+          <item alignment="Qt::AlignmentFlag::AlignHCenter">
+           <widget class="QToolButton" name="collapseToolButton">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="imageResources.qrc">
+              <normaloff>:/images/mainwindowPage/menu-01.png</normaloff>:/images/mainwindowPage/menu-01.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item alignment="Qt::AlignmentFlag::AlignHCenter">
+           <widget class="QToolButton" name="processToolButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="imageResources.qrc">
+              <normaloff>:/images/mainwindowPage/process-01.png</normaloff>:/images/mainwindowPage/process-01.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="leftMenuWidgetVerticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item alignment="Qt::AlignmentFlag::AlignHCenter">
+           <widget class="QToolButton" name="settingToolButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="imageResources.qrc">
+              <normaloff>:/images/mainwindowPage/setting-01.png</normaloff>:/images/mainwindowPage/setting-01.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
-        <spacer name="leftMenuWidgetVerticalSpacer">
+        <spacer name="centralwidgetHorizontalSpacer">
          <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>371</width>
+           <height>20</height>
           </size>
          </property>
         </spacer>
        </item>
-       <item alignment="Qt::AlignmentFlag::AlignHCenter">
-        <widget class="QToolButton" name="settingToolButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+       <item>
+        <widget class="QStackedWidget" name="mainContentStackedWidget">
+         <property name="styleSheet">
+          <string notr="true">border-top-left-radius:9px;
+
+</string>
          </property>
-         <property name="text">
-          <string/>
+         <property name="currentIndex">
+          <number>0</number>
          </property>
-         <property name="icon">
-          <iconset resource="imageResources.qrc">
-           <normaloff>:/images/mainwindowPage/setting-01.png</normaloff>:/images/mainwindowPage/setting-01.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>16</width>
-           <height>16</height>
-          </size>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
+         <widget class="QWidget" name="processPage">
+          <property name="styleSheet">
+           <string notr="true">
+background-color:rgb(255, 255, 255);</string>
+          </property>
+         </widget>
+         <widget class="QWidget" name="settingPage">
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
+          <widget class="QLabel" name="label">
+           <property name="geometry">
+            <rect>
+             <x>20</x>
+             <y>20</y>
+             <width>81</width>
+             <height>31</height>
+            </rect>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>设置</string>
+           </property>
+          </widget>
+         </widget>
         </widget>
        </item>
       </layout>
-     </widget>
-    </item>
-    <item>
-     <spacer name="centralwidgetHorizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QStackedWidget" name="mainContentStackedWidget">
-      <property name="styleSheet">
-       <string notr="true">border-top-left-radius:9px;
-
-</string>
-      </property>
-      <property name="currentIndex">
-       <number>0</number>
-      </property>
-      <widget class="QWidget" name="processPage">
-       <property name="styleSheet">
-        <string notr="true">
-background-color:rgb(255, 255, 255);</string>
-       </property>
-      </widget>
-      <widget class="QWidget" name="settingPage">
-       <property name="styleSheet">
-        <string notr="true"/>
-       </property>
-       <widget class="QLabel" name="label">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>20</y>
-          <width>81</width>
-          <height>31</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>15</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>设置</string>
-        </property>
-       </widget>
-      </widget>
      </widget>
     </item>
    </layout>

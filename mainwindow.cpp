@@ -37,14 +37,24 @@ void MainWindow::initLeftMenuBtnGrp()
             this, [=](QAbstractButton *button){
                 if(button == ui->processToolButton) {
                     ui->mainContentStackedWidget->setCurrentWidget(ui->processPage);
+                    ui->topBannerStackedWidget->setCurrentWidget(ui->processSearchBar);
                 } else if(button == ui->settingToolButton) {
                     ui->mainContentStackedWidget->setCurrentWidget(ui->settingPage);
+                    ui->topBannerStackedWidget->setCurrentWidget(ui->blankBar);
                 }
             });
 
     // 强制布局计算一次，确保 leftMenuWidget 获得正确的初始尺寸
-    ui->leftMenuWidget->layout()->activate();
-    m_expandedWidth = ui->leftMenuWidget->width();
+    // 旧代码（删除）：
+    //ui->leftMenuWidget->layout()->activate();
+    //m_expandedWidth = ui->leftMenuWidget->width();
+
+    // 新代码：
+    QFontMetrics fm(ui->processToolButton->font());
+    int iconW = ui->collapseToolButton->iconSize().width();
+    int textW = qMax(fm.horizontalAdvance("  进程"), fm.horizontalAdvance("  设置"));
+    m_expandedWidth = qMax(iconW + textW + 32, 100);  // 图标+文字+内边距，最低100px
+
 
     // 折叠宽度 = 图标尺寸 + 左右内边距（假设与 collapseToolButton 相同）
     const int iconWidth = ui->collapseToolButton->iconSize().width();
@@ -52,6 +62,7 @@ void MainWindow::initLeftMenuBtnGrp()
     m_collapsedWidth = ui->collapseToolButton->sizeHint().width();
 
     applyMenuAlignment(m_menuExpanded);   // 见下方辅助函数
+
 }
 
 void MainWindow::on_collapseToolButton_pressed()
