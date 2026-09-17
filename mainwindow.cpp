@@ -31,6 +31,7 @@ void MainWindow::initLeftMenuBtnGrp()
     m_leftMenuButtonGroup = new QButtonGroup(this);
 
     m_leftMenuButtonGroup->addButton(ui->processToolButton);
+    m_leftMenuButtonGroup->addButton(ui->aiChatToolButton);
     m_leftMenuButtonGroup->addButton(ui->settingToolButton);
 
     connect(m_leftMenuButtonGroup, QOverload<QAbstractButton*>::of(&QButtonGroup::buttonClicked),
@@ -40,6 +41,9 @@ void MainWindow::initLeftMenuBtnGrp()
                     ui->topBannerStackedWidget->setCurrentWidget(ui->processSearchBar);
                 } else if(button == ui->settingToolButton) {
                     ui->mainContentStackedWidget->setCurrentWidget(ui->settingPage);
+                    ui->topBannerStackedWidget->setCurrentWidget(ui->blankBar);
+                } else if(button == ui->aiChatToolButton ){
+                    ui->mainContentStackedWidget->setCurrentWidget(ui->aiChatPage);
                     ui->topBannerStackedWidget->setCurrentWidget(ui->blankBar);
                 }
             });
@@ -53,16 +57,21 @@ void MainWindow::initLeftMenuBtnGrp()
     QFontMetrics fm(ui->processToolButton->font());
     int iconW = ui->collapseToolButton->iconSize().width();
     int textW = qMax(fm.horizontalAdvance("  进程"), fm.horizontalAdvance("  设置"));
-    m_expandedWidth = qMax(iconW + textW + 32, 100);  // 图标+文字+内边距，最低100px
+    m_expandedWidth = qMax(iconW + textW + 40, 100);  // 图标+文字+内边距，最低100px
 
 
-    // 折叠宽度 = 图标尺寸 + 左右内边距（假设与 collapseToolButton 相同）
+    // 折叠宽度 = 图标尺寸 + 少量左右内边距(2px×2) + 布局左右边距
     const int iconWidth = ui->collapseToolButton->iconSize().width();
-    // 内边距可以从样式表中读取，这里简单取 24（= 12+12）
-    m_collapsedWidth = ui->collapseToolButton->sizeHint().width();
+    int layoutMargins = 0;
+    if (QLayout *layout = ui->leftMenuWidget->layout()) {
+        const QMargins m = layout->contentsMargins();
+        layoutMargins = m.left() + m.right();
+    }
+    m_collapsedWidth = iconWidth + 4 + layoutMargins;
 
     applyMenuAlignment(m_menuExpanded);   // 见下方辅助函数
 
+    ui->processToolButton->click();
 }
 
 void MainWindow::on_collapseToolButton_pressed()
@@ -94,11 +103,13 @@ void MainWindow::applyMenuAlignment(bool expanded)
             layout->setAlignment(btn, Qt::AlignHCenter | Qt::AlignVCenter);
             btn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
             btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            btn->setMinimumWidth(m_expandedWidth*0.92);
+            btn->setMinimumWidth(m_expandedWidth*0.86);
             btn->setMaximumWidth(QWIDGETSIZE_MAX);
 
             if(btn->objectName()=="processToolButton"){
                 btn->setText("  进程");
+            }else if(btn->objectName()=="aiChatToolButton"){
+                btn->setText("   AI");
             }else if(btn->objectName()=="settingToolButton"){
                 btn->setText("  设置");
             }else if(btn->objectName()=="collapseToolButton"){
@@ -111,7 +122,7 @@ void MainWindow::applyMenuAlignment(bool expanded)
             btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
             btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
             btn->setMinimumWidth(0);
-            btn->setMaximumWidth(m_collapsedWidth*0.86);
+            btn->setMaximumWidth(QWIDGETSIZE_MAX);
 
             btn->setText("");
         }
@@ -130,7 +141,6 @@ void MainWindow::initProcessPage()
     m_processTable->setHorizontalHeader(m_processHeader);
     m_processTable->setHorizontalHeaderLabels({"进程名称", "PID", "CPU", "内存", "硬盘", "连接数"});
 
-    m_processHeader->setStretchLastSection(true);
     m_processHeader->setSectionResizeMode(0, QHeaderView::Interactive);
     m_processHeader->setSectionResizeMode(1, QHeaderView::Interactive);
     m_processHeader->setSectionResizeMode(2, QHeaderView::Interactive);
@@ -149,6 +159,9 @@ void MainWindow::initProcessPage()
         "QTableWidget::item:hover { background-color: #f6f6f6; }");
 
     m_processTable->setSortingEnabled(true);
+
+    // 视图尺寸变化（窗口缩放、滚动条出现/消失、菜单折叠/展开）时按比例重新分配列宽
+    m_processTable->viewport()->installEventFilter(this);
 
     QTimer::singleShot(0, this, [this]() {
         setColumnProportions({55, 10, 10, 14, 25, 10});
@@ -186,19 +199,38 @@ void MainWindow::initProcessPage()
 }
 
 void MainWindow::setColumnProportions(const QVector<int>& proportions) {
-    if (!m_processTable) return;
+    if (!m_processTable || proportions.isEmpty())
+        return;
 
-    // 获取表格可视区域的宽度（减去边框和边距）
-    int availableWidth = m_processTable->viewport()->width() - 10;
+    m_columnProportions = proportions;
 
-    // 计算总比例
-    int total = std::accumulate(proportions.begin(), proportions.end(), 0);
+    const int availableWidth = m_processTable->viewport()->width();
+    const int total = std::accumulate(proportions.begin(), proportions.end(), 0);
+    if (total <= 0 || availableWidth <= 0)
+        return;
 
-    // 按比例设置列宽
-    for (size_t i = 0; i < proportions.size() && i < 6; ++i) {
-        int width = availableWidth * proportions[i] / total;
+    // 前 n-1 列按比例分配，最后一列吃掉剩余像素，保证总和恰好填满可视区域
+    const int columnCount = m_processTable->columnCount();
+    int used = 0;
+    for (int i = 0; i < columnCount && i < proportions.size(); ++i) {
+        int width;
+        if (i == columnCount - 1) {
+            width = availableWidth - used;
+        } else {
+            width = availableWidth * proportions[i] / total;
+            used += width;
+        }
         m_processTable->setColumnWidth(i, width);
     }
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == m_processTable->viewport() && event->type() == QEvent::Resize) {
+        if (!m_columnProportions.isEmpty())
+            setColumnProportions(m_columnProportions);
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
 static QString formatBytes(qint64 bytesPerSec)

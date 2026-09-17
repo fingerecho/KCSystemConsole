@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Network Concurrent)
 
 set(TS_FILES KCSystemConsole-demo1-ui_zh_CN.ts)
 
@@ -24,6 +24,9 @@ set(PROJECT_SOURCES
         processinfocollector.h
         TwoRowHeaderView.cpp
         TwoRowHeaderView.h
+        ChatWindow.cpp
+        ChatWindow.h
+        ExecuteCommandTool.hpp
         ${TS_FILES}
 )
 
@@ -33,6 +36,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         imageResources.qrc
         QSSResources.qrc
+        README.md
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET KCSystemConsole-demo1-ui APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -56,7 +60,9 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_link_libraries(KCSystemConsole-demo1-ui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets iphlpapi psapi)
+target_link_libraries(KCSystemConsole-demo1-ui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent iphlpapi psapi
+                         ${CMAKE_SOURCE_DIR}/libs/libLLMQore.dll
+                        )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
@@ -70,7 +76,10 @@ set_target_properties(KCSystemConsole-demo1-ui PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
 )
-
+target_include_directories(KCSystemConsole-demo1-ui PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}
+)
 # Keep GUI subsystem (no console) but avoid Qt's WinMain→qMain entry point
 if(WIN32 AND QT_VERSION_MAJOR EQUAL 6)
     target_link_options(KCSystemConsole-demo1-ui PRIVATE -Wl,--subsystem,windows)

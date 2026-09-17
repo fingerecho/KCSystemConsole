@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QThread>
 #include <QVector>
+#include <QEvent>
 #include "processinfocollector.h"
 #include "TwoRowHeaderView.h"
 
@@ -29,6 +30,9 @@ private slots:
     void on_collapseToolButton_pressed();
     void onProcessCollected(QList<ProcessInfo> processes);
 
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
+
 private:
     void applyMenuAlignment(bool expanded);
     void initLeftMenuBtnGrp();
@@ -48,6 +52,8 @@ private:
     int m_expandedWidth;
     int m_collapsedWidth;
     bool m_menuExpanded = false;
+
+    QVector<int> m_columnProportions;
 
     Ui::MainWindow *ui;
 };
